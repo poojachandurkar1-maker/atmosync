@@ -1,6 +1,0 @@
-container_id,temperature,humidity,location
-CONT001,5.2,70,Mumbai
-CONT002,7.1,68,Pune
-CONT003,3.9,75,Nagpur
-CONT004,6.0,72,Delhi
-CONT005,4.8,69,Chennai
