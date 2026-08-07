@@ -1,34 +1,109 @@
 import json
 import random
 import time
-from datetime import datetime
+from datetime import datetime, timezone
+
 from kafka import KafkaProducer
 
-producer = KafkaProducer(
-    bootstrap_servers='localhost:9092',
-    value_serializer=lambda v: json.dumps(v).encode('utf-8')
-)
+import sys
+import os
 
-containers = ["CONT001", "CONT002", "CONT003", "CONT004", "CONT005"]
-commodities = ["Avocado", "Banana", "Apple", "Tomato", "Mango"]
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-print("AtmoSync IoT Simulator Started...")
+from config.kafka_config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC
 
-while True:
 
-    telemetry = {
-        "container_id": random.choice(containers),
-        "commodity": random.choice(commodities),
-        "temperature": round(random.uniform(2, 15), 2),
-        "humidity": random.randint(60, 95),
-        "gps_lat": round(random.uniform(18.5200, 18.6200), 6),
-        "gps_long": round(random.uniform(73.8200, 73.9200), 6),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+TOTAL_RECORDS = 2000
+
+CONTAINERS = [
+    "CONT-001",
+    "CONT-002",
+    "CONT-003",
+    "CONT-004",
+    "CONT-005",
+    "CONT-006",
+    "CONT-007",
+    "CONT-008",
+    "CONT-009",
+    "CONT-010",
+]
+
+LOCATIONS = [
+    "Nagpur",
+    "Mumbai",
+    "Pune",
+    "Delhi",
+    "Bengaluru",
+    "Hyderabad",
+]
+
+
+def generate_sensor_data():
+    """Generate one AtmoSync IoT sensor record."""
+
+    return {
+        "container_id": random.choice(CONTAINERS),
+        "temperature": round(random.uniform(2.0, 12.0), 2),
+        "humidity": round(random.uniform(55.0, 90.0), 2),
+        "location": random.choice(LOCATIONS),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
-    producer.send("container-telemetry", telemetry)
-    producer.flush()
 
-    print("Sent:", telemetry)
+def create_kafka_producer():
+    """Create Kafka producer."""
 
-    time.sleep(2)
+    return KafkaProducer(
+        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+        value_serializer=lambda value: json.dumps(value).encode("utf-8"),
+    )
+
+
+def main():
+
+    print("=" * 60)
+    print("AtmoSync IoT Sensor Simulator")
+    print("=" * 60)
+
+    print(f"Kafka Server : {KAFKA_BOOTSTRAP_SERVERS}")
+    print(f"Kafka Topic  : {KAFKA_TOPIC}")
+    print(f"Total Records: {TOTAL_RECORDS}")
+    print("=" * 60)
+
+    producer = create_kafka_producer()
+
+    try:
+
+        for record_number in range(1, TOTAL_RECORDS + 1):
+
+            sensor_data = generate_sensor_data()
+
+            producer.send(
+                KAFKA_TOPIC,
+                sensor_data
+            )
+
+            producer.flush()
+
+            print(
+                f"[{record_number}/{TOTAL_RECORDS}] "
+                f"{sensor_data}"
+            )
+
+            time.sleep(0.1)
+
+        print("=" * 60)
+        print(f"Completed successfully: {TOTAL_RECORDS} records sent.")
+        print("=" * 60)
+
+    except KeyboardInterrupt:
+
+        print("\nSimulator stopped by user.")
+
+    finally:
+
+        producer.close()
+
+
+if __name__ == "__main__":
+    main()
