@@ -10,5 +10,7 @@ venv/
 # Java / Maven
 target/
 
+
 # Logs
 *.log
+*.pbix
